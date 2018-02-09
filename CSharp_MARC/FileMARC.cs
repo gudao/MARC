@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Collections;
+using System.Text;
 
 namespace MARC
 {
@@ -101,20 +102,24 @@ namespace MARC
         /// Initializes a new instance of the <see cref="FileMARC"/> class.
         /// </summary>
         /// <param name="source">String consisting of one or more raw MARC records.</param>
-        public FileMARC(string source)
-            : this()
+        public FileMARC(Encoding encode, string source)
         {
-			Add(source);
+            encoding = encode;
+            _rawSource = new List<string>();
+            Add(source);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FileMARC"/> class.
         /// </summary>
-        public FileMARC()
+        public FileMARC(Encoding encod)
         {
             _rawSource = new List<string>();
+            encoding = encod;
         }
+        
 
+        private Encoding encoding;
         #region Public member functions
 
         /// <summary>
@@ -125,7 +130,7 @@ namespace MARC
         {
             string fileContents;
 
-			using (var reader = new StreamReader(file))
+			using (var reader = new StreamReader(file,encoding))
 			{
 				fileContents = reader.ReadToEnd();
 			}
@@ -156,6 +161,17 @@ namespace MARC
 
         #region Private utility functions
 
+
+        private string GetSubstring(byte[] source, int index, int length)
+        {
+
+            byte[] a1 = new byte[length];
+            Array.Copy(source, index, a1, 0, length);
+                
+            return encoding.GetString(a1);
+
+        }
+
         /// <summary>
         /// Decodes the raw MARC record into a <see cref="MARC.Record"/> at the specified index.///
         /// </summary>
@@ -164,6 +180,7 @@ namespace MARC
         private Record Decode(int index)
         {
             string raw = _rawSource[index];
+            byte[] raw1 = encoding.GetBytes(_rawSource[index]);
             Record marc = new Record();
             Match match = Regex.Match(raw, "^(\\d{5})");
             int recordLength = 0;
@@ -174,10 +191,10 @@ namespace MARC
             else
                 recordLength = Convert.ToInt32(match.Captures[0].Value);
 
-            if (recordLength != raw.Length)
+            if (recordLength != raw1.Length)
             {
 				marc.AddWarnings("MARC record length does not match actual length.");
-                recordLength = raw.Length;
+                recordLength = raw1.Length;
             }
 
             if (!raw.EndsWith(END_OF_RECORD.ToString()))
@@ -191,6 +208,8 @@ namespace MARC
 
             //Immediately after the leader comes the directory (no separator)
             string directory = raw.Substring(LEADER_LEN, dataStart - LEADER_LEN - 1);
+
+            //string directory = GetSubstring(raw1, LEADER_LEN, dataStart - LEADER_LEN - 1);
 
             //Character after the directory should be END_OF_FIELD
             if (raw.Substring(dataStart - 1, 1) != END_OF_FIELD.ToString())
@@ -249,7 +268,9 @@ namespace MARC
 					marc.AddWarnings("Directory entry for tag " + tag + " runs past the end of the record.");
 					fieldLength = recordLength - fieldStart;
 				}
-                string tagData = raw.Substring(fieldStart, fieldLength);
+                //string tagData = raw.Substring(fieldStart, fieldLength);
+                string tagData = GetSubstring(raw1, fieldStart, fieldLength);
+
 
                 if (tagData.Substring(tagData.Length - 1, 1) == END_OF_FIELD.ToString())
                 {

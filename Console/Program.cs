@@ -13,8 +13,8 @@ namespace Marc.ConsoleApp
 
         static void Main(string[] args)
         {
-            string filename = "isoteste.iso";
-
+            string filename = @"D:\svn\InterlibAPI\InterlibAPI\bianmu.ISO";
+            //string filename = @"D:\svn\InterlibAPI\InterlibAPI\aa.txt";
             // load all into memory for faster access
             Console.WriteLine("Loading into memory...");
             Load(filename);

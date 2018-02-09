@@ -127,7 +127,7 @@ namespace MARC
         /// your integrated library system.
         /// </summary>
         /// <returns></returns>
-        public string ToRaw()
+        public string ToRaw(Encoding encoding)
         {
             //Build the directory
             string rawFields = string.Empty;
@@ -143,7 +143,7 @@ namespace MARC
                     string rawField = field.ToRaw();
                     rawFields += rawField;
 
-                    directory += field.Tag.PadLeft(3, '0') + rawField.Length.ToString().PadLeft(4, '0') + dataEnd.ToString().PadLeft(5, '0');
+                    directory += field.Tag.PadLeft(3, '0') + encoding.GetByteCount(rawField).ToString().PadLeft(4, '0') + dataEnd.ToString().PadLeft(5, '0');
                     dataEnd += rawField.Length;
                     count++;
                 }
@@ -154,12 +154,16 @@ namespace MARC
 
             // set Leader Lengths
 			Leader = Leader.PadRight(FileMARC.LEADER_LEN);
-            Leader = Leader.Remove(0, 5).Insert(0, recordLength.ToString().PadLeft(5, '0'));
-            Leader = Leader.Remove(12, 5).Insert(12, baseAddress.ToString().PadLeft(5, '0'));
-            Leader = Leader.Remove(10, 2).Insert(10, "22");
-            Leader = Leader.Remove(20, 4).Insert(20, "4500");
+            Leader = Leader.Remove(0, 5).Insert(0, recordLength.ToString().PadLeft(5, '0'));//0-4 记录长度
+            Leader = Leader.Remove(5, 1).Insert(0,"n");//5 记录状态：c＝修改过的记录 d＝删除的记录n＝新记录o＝曾为较高层次记录p＝曾为不完整的预编记录
+            Leader = Leader.Remove(6, 4).Insert(0, "am  ");//6-9执行代码:记录类型\书目级别\层次等级代码\未定义
+            Leader = Leader.Remove(10, 1).Insert(0, "2");//10指示符长度  CN-MARC格式为2
+            Leader = Leader.Remove(11, 1).Insert(0, "2");//11子字段标识符长度CN-MARC格式为2
+            Leader = Leader.Remove(12, 5).Insert(12, baseAddress.ToString().PadLeft(5, '0'));//12-16数据基地址,它等于头标区和目次区的字符总数。 
+            Leader = Leader.Remove(17, 3).Insert(10, "2  ");//17-19记录附加定义 :编目等级\著录格式
+            Leader = Leader.Remove(20, 4).Insert(20, "45  ");// 20-23 地址目次结构
 
-			return Leader.Substring(0, FileMARC.LEADER_LEN) + directory + FileMARC.END_OF_FIELD.ToString() + rawFields + FileMARC.END_OF_RECORD.ToString();
+            return Leader.Substring(0, FileMARC.LEADER_LEN) + directory + FileMARC.END_OF_FIELD.ToString() + rawFields + FileMARC.END_OF_RECORD.ToString();
         }
 
 		/// <summary>

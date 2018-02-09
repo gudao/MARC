@@ -40,10 +40,11 @@ namespace MARC
 	public class FileMARCReader : IEnumerable<Record>, IDisposable
 	{
 		private readonly FileStream _reader;
-
-		public FileMARCReader(string filename)
+        private Encoding _encoding;
+		public FileMARCReader(string filename,Encoding encode)
 		{
 			_reader = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            _encoding = encode;
 		}
 
 		public IEnumerator<Record> GetEnumerator()
@@ -70,7 +71,7 @@ namespace MARC
 
 				_reader.Position = _reader.Position - (realReadSize - delPosition);
 
-				FileMARC marc = new FileMARC(Encoding.Default.GetString(buffer, 0, delPosition));
+                FileMARC marc = new FileMARC(_encoding, _encoding.GetString(buffer, 0, delPosition));
 				foreach (Record marcRecord in marc)
 				{
 					yield return marcRecord;
